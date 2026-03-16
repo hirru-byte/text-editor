@@ -1,64 +1,202 @@
-import Image from "next/image";
+"use client";
+
+import { motion } from "framer-motion";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  arrayMove,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { LexicalComposer } from "@lexical/react/LexicalComposer";
+import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
+import { ContentEditable } from "@lexical/react/LexicalContentEditable";
+import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
+import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
+import { $getRoot, $getSelection, EditorState } from "lexical";
+import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
+
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+
+type Item = {
+  id: string;
+  label: string;
+};
+
+function SortableItem({ id, label }: Item) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <motion.li
+      ref={setNodeRef}
+      style={style}
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      className={`flex items-center justify-between rounded-md border bg-zinc-50 px-3 py-2 text-sm dark:bg-zinc-900 ${isDragging ? "ring-2 ring-primary" : ""
+        }`}
+      {...attributes}
+      {...listeners}
+    >
+      <span className="text-zinc-800 dark:text-zinc-100">{label}</span>
+      <span className="text-xs text-zinc-400">drag</span>
+    </motion.li>
+  );
+}
+
+function ExampleEditor() {
+  const initialConfig = {
+    namespace: "ExampleEditor",
+    onError(error: unknown) {
+      console.error(error);
+    },
+    theme: {
+      paragraph: "mb-1",
+    },
+    nodes: [],
+  };
+
+  function onChange(editorState: EditorState) {
+    editorState.read(() => {
+      const root = $getRoot();
+      const selection = $getSelection();
+      console.log("EditorState:", root.__cachedText, selection);
+    });
+  }
+
+  return (
+    <LexicalComposer initialConfig={initialConfig}>
+      <div className="rounded-lg border bg-background p-3 text-sm">
+
+        <RichTextPlugin
+          ErrorBoundary={LexicalErrorBoundary}
+          contentEditable={
+            <ContentEditable className="min-h-[80px] resize-none bg-transparent outline-none text-black" />
+          }
+          placeholder={
+            <div className="pointer-events-none select-none text-sm text-muted-foreground">
+              Start typing your notes here…
+            </div>
+          }
+        />
+        <HistoryPlugin />
+        <OnChangePlugin onChange={onChange} />
+      </div>
+    </LexicalComposer>
+  );
+}
 
 export default function Home() {
+  const [items, setItems] = useState<Item[]>([
+    { id: "1", label: "First task" },
+    { id: "2", label: "Second task" },
+    { id: "3", label: "Third task" },
+  ]);
+
+  const sensors = useSensors(useSensor(PointerSensor));
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    setItems((prev) => {
+      const oldIndex = prev.findIndex((item) => item.id === active.id);
+      const newIndex = prev.findIndex((item) => item.id === over.id);
+      return arrayMove(prev, oldIndex, newIndex);
+    });
+  }
+
+  function shuffle() {
+    setItems((prev) => [...prev].sort(() => Math.random() - 0.5));
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-slate-950 to-black px-4 py-10 text-slate-100">
+      <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 rounded-2xl border border-white/10 bg-black/40 p-6 shadow-xl shadow-slate-950/60 backdrop-blur">
+        <header className="flex items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight">
+              Text editor playground
+            </h1>
+            <p className="text-sm text-slate-400">
+              Lexical editor, dnd-kit list, and Framer Motion animations.
+            </p>
+          </div>
+          <motion.div
+            className="h-8 w-8 rounded-full bg-gradient-to-tr from-sky-500 to-violet-500"
+            animate={{ scale: [1, 1.1, 1] }}
+            transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+          />
+        </header>
+
+        <section className="grid gap-6 md:grid-cols-[minmax(0,3fr),minmax(0,2fr)]">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-medium text-slate-200">
+                Lexical editor
+              </h2>
+            </div>
+            <ExampleEditor />
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-sm font-medium text-slate-200">
+                Draggable list
+              </h2>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={shuffle}
+              >
+                Shuffle
+              </Button>
+            </div>
+
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+              <SortableContext
+                items={items.map((item) => item.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <motion.ul
+                  layout
+                  className="space-y-2 rounded-lg border border-white/10 bg-slate-950/60 p-3"
+                >
+                  {items.map((item) => (
+                    <SortableItem key={item.id} {...item} />
+                  ))}
+                </motion.ul>
+              </SortableContext>
+            </DndContext>
+          </div>
+        </section>
       </main>
     </div>
   );
