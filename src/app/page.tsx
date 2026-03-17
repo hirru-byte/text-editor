@@ -23,6 +23,8 @@ import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { $getRoot, $getSelection, EditorState } from "lexical";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
+import ToolbarPlugin from "@/components/plugin/ToolbarPlugin";
+import YouTubePlugin from "@/components/plugin/YoutubePlugin";
 
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -55,13 +57,12 @@ function SortableItem({ id, label }: Item) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
-      className={`flex items-center justify-between rounded-md border bg-zinc-50 px-3 py-2 text-sm dark:bg-zinc-900 ${isDragging ? "ring-2 ring-primary" : ""
-        }`}
+      className={`flex items-center justify-between rounded-md border bg-muted/80 px-3 py-2 text-sm ${isDragging ? "ring-2 ring-primary" : ""}`}
       {...attributes}
       {...listeners}
     >
-      <span className="text-zinc-800 dark:text-zinc-100">{label}</span>
-      <span className="text-xs text-zinc-400">drag</span>
+      <span className="text-foreground">{label}</span>
+      <span className="text-xs text-muted-foreground">drag</span>
     </motion.li>
   );
 }
@@ -89,11 +90,12 @@ function ExampleEditor() {
   return (
     <LexicalComposer initialConfig={initialConfig}>
       <div className="rounded-lg border bg-background p-3 text-sm">
-
+        <ToolbarPlugin />
+        <YouTubePlugin />
         <RichTextPlugin
           ErrorBoundary={LexicalErrorBoundary}
           contentEditable={
-            <ContentEditable className="min-h-[80px] resize-none bg-transparent outline-none text-black" />
+            <ContentEditable className="min-h-[80px] resize-none bg-transparent outline-none text-foreground" />
           }
           placeholder={
             <div className="pointer-events-none select-none text-sm text-muted-foreground">
@@ -133,14 +135,14 @@ export default function Home() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-slate-950 to-black px-4 py-10 text-slate-100">
-      <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 rounded-2xl border border-white/10 bg-black/40 p-6 shadow-xl shadow-slate-950/60 backdrop-blur">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-100 via-slate-50 to-white px-4 py-10 text-foreground dark:from-slate-900 dark:via-slate-950 dark:to-black dark:text-slate-100">
+      <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 rounded-2xl border border-border bg-card/80 p-6 shadow-xl shadow-black/5 backdrop-blur dark:border-white/10 dark:bg-black/40 dark:shadow-slate-950/60">
         <header className="flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold tracking-tight">
+            <h1 className="text-xl font-semibold tracking-tight text-foreground">
               Text editor playground
             </h1>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-muted-foreground">
               Lexical editor, dnd-kit list, and Framer Motion animations.
             </p>
           </div>
@@ -154,7 +156,7 @@ export default function Home() {
         <section className="grid gap-6 md:grid-cols-[minmax(0,3fr),minmax(0,2fr)]">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-medium text-slate-200">
+              <h2 className="text-sm font-medium text-foreground">
                 Lexical editor
               </h2>
             </div>
@@ -163,7 +165,7 @@ export default function Home() {
 
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-sm font-medium text-slate-200">
+              <h2 className="text-sm font-medium text-foreground">
                 Draggable list
               </h2>
               <Button
@@ -187,7 +189,7 @@ export default function Home() {
               >
                 <motion.ul
                   layout
-                  className="space-y-2 rounded-lg border border-white/10 bg-slate-950/60 p-3"
+                  className="space-y-2 rounded-lg border border-border bg-muted/50 p-3 dark:border-white/10 dark:bg-slate-950/60"
                 >
                   {items.map((item) => (
                     <SortableItem key={item.id} {...item} />
