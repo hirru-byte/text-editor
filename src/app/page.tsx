@@ -143,7 +143,13 @@ export default function Home() {
               Text editor playground
             </h1>
             <p className="text-sm text-muted-foreground">
-              Lexical editor, dnd-kit list, and Framer Motion animations.
+              Lexical editor, dnd-kit list, and Framer Motion animations.{" "}
+              <a
+                href="/playground"
+                className="font-medium text-primary underline underline-offset-2 hover:opacity-80"
+              >
+                Open Lexical Playground →
+              </a>
             </p>
           </div>
           <motion.div
