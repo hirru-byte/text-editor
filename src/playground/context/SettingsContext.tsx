@@ -1,56 +1,72 @@
-"use client";
-
 /**
- * Playground settings context (adapted from lexical-playground-nextjs).
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
  */
 
-import type { SettingName, Settings } from "../appSettings";
+import type { SettingName } from '../appSettings';
+import type { JSX } from 'react';
+
+import * as React from 'react';
 import {
   createContext,
+  ReactNode,
   useCallback,
   useContext,
   useMemo,
   useState,
-  type ReactNode,
-} from "react";
+} from 'react';
 
-import { DEFAULT_SETTINGS, getInitialSettings } from "../appSettings";
+import { DEFAULT_SETTINGS, INITIAL_SETTINGS } from '../appSettings';
 
 type SettingsContextShape = {
   setOption: (name: SettingName, value: boolean) => void;
-  settings: Settings;
+  settings: Record<SettingName, boolean>;
 };
 
-const defaultSettings = getInitialSettings();
-
-const Context = createContext<SettingsContextShape>({
-  setOption: () => {},
-  settings: defaultSettings,
+const Context: React.Context<SettingsContextShape> = createContext({
+  setOption: (name: SettingName, value: boolean) => {
+    return;
+  },
+  settings: INITIAL_SETTINGS,
 });
 
-export function SettingsContext({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<Settings>(defaultSettings);
+export const SettingsContext = ({
+  children,
+}: {
+  children: ReactNode;
+}): JSX.Element => {
+  const [settings, setSettings] = useState(INITIAL_SETTINGS);
 
-  const setOption = useCallback((name: SettingName, value: boolean) => {
-    setSettings((prev) => ({ ...prev, [name]: value }));
-    if (typeof window !== "undefined") {
-      const url = new URL(window.location.href);
-      const params = new URLSearchParams(url.search);
-      if (value !== DEFAULT_SETTINGS[name]) {
-        params.set(name, String(value));
-      } else {
-        params.delete(name);
-      }
-      url.search = params.toString();
-      window.history.replaceState(null, "", url.toString());
-    }
+  const setOption = useCallback((setting: SettingName, value: boolean) => {
+    setSettings((options) => ({
+      ...options,
+      [setting]: value,
+    }));
+    setURLParam(setting, value);
   }, []);
 
-  const value = useMemo(() => ({ setOption, settings }), [setOption, settings]);
+  const contextValue = useMemo(() => {
+    return { setOption, settings };
+  }, [setOption, settings]);
 
-  return <Context.Provider value={value}>{children}</Context.Provider>;
-}
+  return <Context.Provider value={contextValue}>{children}</Context.Provider>;
+};
 
-export function useSettings(): SettingsContextShape {
+export const useSettings = (): SettingsContextShape => {
   return useContext(Context);
+};
+
+function setURLParam(param: SettingName, value: null | boolean) {
+  const url = new URL(window.location.href);
+  const params = new URLSearchParams(url.search);
+  if (value !== DEFAULT_SETTINGS[param]) {
+    params.set(param, String(value));
+  } else {
+    params.delete(param);
+  }
+  url.search = params.toString();
+  window.history.pushState(null, '', url.toString());
 }

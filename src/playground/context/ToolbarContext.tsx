@@ -1,82 +1,64 @@
-"use client";
-
 /**
- * Toolbar state context (from lexical-playground-nextjs).
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
  */
 
-import type { ElementFormatType } from "lexical";
-import {
+import type { JSX } from 'react';
+
+import { ElementFormatType } from 'lexical';
+import React, {
   createContext,
+  ReactNode,
   useCallback,
   useContext,
   useEffect,
   useMemo,
   useState,
-  type ReactNode,
-} from "react";
+} from 'react';
 
 export const MIN_ALLOWED_FONT_SIZE = 8;
 export const MAX_ALLOWED_FONT_SIZE = 72;
 export const DEFAULT_FONT_SIZE = 15;
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const rootTypeToRootName = {
-  root: "Root",
-  table: "Table",
-} as const;
-
-export const blockTypeToBlockName = {
-  bullet: "Bulleted List",
-  check: "Check List",
-  code: "Code Block",
-  h1: "Heading 1",
-  h2: "Heading 2",
-  h3: "Heading 3",
-  h4: "Heading 4",
-  h5: "Heading 5",
-  h6: "Heading 6",
-  number: "Numbered List",
-  paragraph: "Normal",
-  quote: "Quote",
-} as const;
-
-type ToolbarState = {
-  bgColor: string;
-  blockType: keyof typeof blockTypeToBlockName;
-  canRedo: boolean;
-  canUndo: boolean;
-  codeLanguage: string;
-  elementFormat: ElementFormatType;
-  fontColor: string;
-  fontFamily: string;
-  fontSize: string;
-  fontSizeInputValue: string;
-  isBold: boolean;
-  isCode: boolean;
-  isHighlight: boolean;
-  isImageCaption: boolean;
-  isItalic: boolean;
-  isLink: boolean;
-  isRTL: boolean;
-  isStrikethrough: boolean;
-  isSubscript: boolean;
-  isSuperscript: boolean;
-  isUnderline: boolean;
-  isLowercase: boolean;
-  isUppercase: boolean;
-  isCapitalize: boolean;
-  rootType: keyof typeof rootTypeToRootName;
+  root: 'Root',
+  table: 'Table',
 };
 
-const INITIAL_TOOLBAR_STATE: ToolbarState = {
-  bgColor: "#fff",
-  blockType: "paragraph",
+export const blockTypeToBlockName = {
+  bullet: 'Bulleted List',
+  check: 'Check List',
+  code: 'Code Block',
+  h1: 'Heading 1',
+  h2: 'Heading 2',
+  h3: 'Heading 3',
+  h4: 'Heading 4',
+  h5: 'Heading 5',
+  h6: 'Heading 6',
+  number: 'Numbered List',
+  paragraph: 'Normal',
+  quote: 'Quote',
+};
+
+//disable eslint sorting rule for quick reference to toolbar state
+
+const INITIAL_TOOLBAR_STATE = {
+  bgColor: '#fff',
+  blockType: 'paragraph' as keyof typeof blockTypeToBlockName,
   canRedo: false,
   canUndo: false,
-  codeLanguage: "",
-  elementFormat: "left",
-  fontColor: "#000",
-  fontFamily: "Arial",
+  codeLanguage: '',
+  codeTheme: '',
+  elementFormat: 'left' as ElementFormatType,
+  fontColor: '#000',
+  fontFamily: 'Arial',
+  // Current font size in px
   fontSize: `${DEFAULT_FONT_SIZE}px`,
+  // Font size input value - for controlled input
   fontSizeInputValue: `${DEFAULT_FONT_SIZE}`,
   isBold: false,
   isCode: false,
@@ -92,47 +74,65 @@ const INITIAL_TOOLBAR_STATE: ToolbarState = {
   isLowercase: false,
   isUppercase: false,
   isCapitalize: false,
-  rootType: "root",
+  rootType: 'root' as keyof typeof rootTypeToRootName,
+  listStartNumber: null as number | null,
 };
 
+type ToolbarState = typeof INITIAL_TOOLBAR_STATE;
+
+// Utility type to get keys and infer value types
 type ToolbarStateKey = keyof ToolbarState;
-type ToolbarStateValue = ToolbarState[ToolbarStateKey];
+type ToolbarStateValue<Key extends ToolbarStateKey> = ToolbarState[Key];
 
 type ContextShape = {
   toolbarState: ToolbarState;
-  updateToolbarState: (key: ToolbarStateKey, value: ToolbarStateValue) => void;
+  updateToolbarState<Key extends ToolbarStateKey>(
+    key: Key,
+    value: ToolbarStateValue<Key>,
+  ): void;
 };
 
 const Context = createContext<ContextShape | undefined>(undefined);
 
-export function ToolbarContext({ children }: { children: ReactNode }) {
-  const [toolbarState, setToolbarState] =
-    useState<ToolbarState>(INITIAL_TOOLBAR_STATE);
+export const ToolbarContext = ({
+  children,
+}: {
+  children: ReactNode;
+}): JSX.Element => {
+  const [toolbarState, setToolbarState] = useState(INITIAL_TOOLBAR_STATE);
   const selectionFontSize = toolbarState.fontSize;
 
   const updateToolbarState = useCallback(
-    (key: ToolbarStateKey, value: ToolbarStateValue) => {
-      setToolbarState((prev) => ({ ...prev, [key]: value }));
+    <Key extends ToolbarStateKey>(key: Key, value: ToolbarStateValue<Key>) => {
+      setToolbarState((prev) => ({
+        ...prev,
+        [key]: value,
+      }));
     },
     [],
   );
 
   useEffect(() => {
-    updateToolbarState("fontSizeInputValue", selectionFontSize.slice(0, -2));
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    updateToolbarState('fontSizeInputValue', selectionFontSize.slice(0, -2));
   }, [selectionFontSize, updateToolbarState]);
 
-  const value = useMemo(
-    () => ({ toolbarState, updateToolbarState }),
-    [toolbarState, updateToolbarState],
-  );
+  const contextValue = useMemo(() => {
+    return {
+      toolbarState,
+      updateToolbarState,
+    };
+  }, [toolbarState, updateToolbarState]);
 
-  return <Context.Provider value={value}>{children}</Context.Provider>;
-}
+  return <Context.Provider value={contextValue}>{children}</Context.Provider>;
+};
 
-export function useToolbarState(): ContextShape {
-  const ctx = useContext(Context);
-  if (ctx === undefined) {
-    throw new Error("useToolbarState must be used within ToolbarContext");
+export const useToolbarState = () => {
+  const context = useContext(Context);
+
+  if (context === undefined) {
+    throw new Error('useToolbarState must be used within a ToolbarProvider');
   }
-  return ctx;
-}
+
+  return context;
+};

@@ -25,6 +25,8 @@ export const DEFAULT_SETTINGS = {
   tableCellBackgroundColor: true,
   tableCellMerge: true,
   tableHorizontalScroll: true,
+  isCodeHighlighted: true,
+  isCodeShiki: true,
 } as const;
 
 export function getInitialSettings(): Record<
